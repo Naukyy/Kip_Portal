@@ -55,8 +55,13 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/users/{user}/reset-password', [Admin\AdminUserController::class, 'resetPassword'])->name('users.reset-password');
             Route::post('/users/{user}/toggle-status', [Admin\AdminUserController::class, 'toggleStatus'])->name('users.toggle-status');
 
-            // Students CRUD
+// Students CRUD
             Route::resource('students', Admin\StudentController::class);
+            
+            // Students AJAX API (for inline editing)
+            Route::patch('/students/{student}/inline', [Admin\StudentController::class, 'inlineUpdate'])->name('students.inline-update');
+            Route::delete('/students/{student}/delete', [Admin\StudentController::class, 'inlineDelete'])->name('students.inline-delete');
+            Route::get('/students/api/trainers', [Admin\StudentController::class, 'getTrainers'])->name('students.trainers');
 
             // Global Recap
             Route::get('recap', [Admin\RecapController::class, 'index'])->name('recap.index');
