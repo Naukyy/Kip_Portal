@@ -67,39 +67,39 @@
                     <th class="px-4 py-3 font-semibold tracking-wider text-center">Actions</th>
                 </tr>
             </thead>
-            <tbody id="student-table-body" class="divide-y divide-gray-100 dark:divide-gray-800/60">
+<tbody id="student-table-body" class="divide-y divide-gray-100 dark:divide-gray-800/60">
                 @forelse($students as $student)
                     <tr data-student-id="{{ $student->id }}" class="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
 <!-- ID - Inline Editable -->
-                        <td class="px-4 py-3 editable cursor-pointer" data-field="student_id" data-student-id="{{ $student->id }}">
+                        <td class="px-4 py-3 editable cursor-pointer text-gray-900 dark:text-white" data-field="student_id" data-student-id="{{ $student->id }}">
                             {{ $student->student_id }}
                         </td>
                         <!-- NAME - Inline Editable -->
-                        <td class="px-4 py-3 editable cursor-pointer" data-field="name" data-student-id="{{ $student->id }}">
+                        <td class="px-4 py-3 editable cursor-pointer text-gray-900 dark:text-white" data-field="name" data-student-id="{{ $student->id }}">
                             {{ $student->name }}
                         </td>
                         <!-- PERIODE - Inline Editable -->
-                        <td class="px-4 py-3 editable cursor-pointer" data-field="periode" data-student-id="{{ $student->id }}">
+                        <td class="px-4 py-3 editable cursor-pointer text-gray-900 dark:text-white" data-field="periode" data-student-id="{{ $student->id }}">
                             {{ $student->periode ?? '-' }}
                         </td>
                         <!-- SESSIONS - Inline Editable -->
-                        <td class="px-4 py-3 editable cursor-pointer" data-field="session_time" data-student-id="{{ $student->id }}">
+                        <td class="px-4 py-3 editable cursor-pointer text-gray-900 dark:text-white" data-field="session_time" data-student-id="{{ $student->id }}">
                             {{ $student->session_time ?? '-' }}
                         </td>
                         <!-- SCHEDULE - Inline Editable -->
-                        <td class="px-4 py-3 editable cursor-pointer" data-field="schedule" data-student-id="{{ $student->id }}">
+                        <td class="px-4 py-3 editable cursor-pointer text-gray-900 dark:text-white" data-field="schedule" data-student-id="{{ $student->id }}">
                             {{ $student->schedule ?? '-' }}
                         </td>
                         <!-- WA - Inline Editable -->
-                        <td class="px-4 py-3 editable cursor-pointer" data-field="phone" data-student-id="{{ $student->id }}">
+                        <td class="px-4 py-3 editable cursor-pointer text-gray-900 dark:text-white" data-field="phone" data-student-id="{{ $student->id }}">
                             {{ $student->phone ?? '-' }}
                         </td>
                         <!-- EMAIL - Inline Editable -->
-                        <td class="px-4 py-3 editable cursor-pointer" data-field="email" data-student-id="{{ $student->id }}">
+                        <td class="px-4 py-3 editable cursor-pointer text-gray-900 dark:text-white" data-field="email" data-student-id="{{ $student->id }}">
                             {{ $student->email ?? '-' }}
                         </td>
                         <!-- TRAINER - Dropdown Inline Edit -->
-                        <td class="px-4 py-3 editable cursor-pointer" data-field="trainer_id" data-student-id="{{ $student->id }}">
+                        <td class="px-4 py-3 editable cursor-pointer text-gray-900 dark:text-white" data-field="trainer_id" data-student-id="{{ $student->id }}">
                             {{ $student->trainer->name ?? '-' }}
                         </td>
                         <!-- Actions -->
