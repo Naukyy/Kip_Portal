@@ -37,7 +37,7 @@ class AdminUserController extends Controller
         return view('admin.users.index', compact('users', 'search', 'role'));
     }
 
-    /**
+/**
      * AJAX: Search users for autocomplete or quick search
      * GET /admin/users/search
      */
@@ -45,12 +45,12 @@ class AdminUserController extends Controller
     {
         $search = $request->get('q', '');
         
-        $users = User::where(function ($query) use ($search) {
+$users = User::where(function ($query) use ($search) {
                 $query->where('name', 'like', "%{$search}%")
                       ->orWhere('employee_code', 'like', "%{$search}%")
                       ->orWhere('nickname', 'like', "%{$search}%");
             })
-            ->select('id', 'employee_code', 'name', 'nickname', 'role')
+            ->select('id', 'employee_code', 'name', 'nickname', 'whatsapp', 'email', 'role', 'is_active')
             ->limit(10)
             ->get();
             

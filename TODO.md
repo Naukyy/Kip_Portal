@@ -1,11 +1,45 @@
 # User Management Implementation Tasks
 
 ## Progress
-- [x] 1. Analyze existing codebase
-- [x] 2. Update Routes (web.php) - Add AJAX routes for AdminUserController
-- [ ] 3. Create Blade Template (resources/views/admin/users/index.blade.php)
-- [ ] 4. Create JavaScript for Fetch API integration
-- [ ] 5. Test the implementation
+
+# Admin Features Breakdown
+
+## 1. User Management
+- [ ] CRUD User (Trainer/Management/Admin)
+	- [ ] Tambah, edit, hapus, lihat user
+	- [ ] Field: kode, nama, nickname, email, password, role, WhatsApp
+
+## 2. All Students
+- [ ] CRUD Siswa (inline edit)
+	- [ ] Lihat daftar siswa
+	- [ ] Filter berdasarkan trainer & sesi
+	- [ ] Tambah, edit (inline), hapus siswa
+
+## 3. Attendance Recap
+- [ ] Rekap Absensi Bulanan
+	- [ ] Filter tahun, bulan, trainer, sesi
+	- [ ] Tampilkan status absensi per hari (A, P, Ab, SUB)
+	- [ ] Ekspor data ke CSV
+
+## 4. Trainer Payroll
+- [ ] Ledger Gaji Trainer Harian
+	- [ ] Filter tahun, bulan, trainer
+	- [ ] Tampilkan daily rate (berdasarkan jumlah siswa hadir)
+	- [ ] Hitung total gaji per trainer
+	- [ ] Ubah posisi trainer (Junior/Senior) → hitung ulang otomatis
+	- [ ] Ekspor data ke CSV
+
+## 5. Data Settings
+- [ ] Master Data Payroll
+	- [ ] Salary Range: per posisi (Junior/Senior) dan tier jumlah siswa (1-5, 6-7, 8-10, 11+)
+	- [ ] Additional Incentives: kategori & nominal
+	- [ ] Deductions: kategori & nominal
+
+## 6. Salary Adjustments
+- [ ] Final Salary & Transaksi
+	- [ ] Tampilkan final salary per trainer (base + incentives - deductions)
+	- [ ] Modal daftar transaksi & tambah transaksi baru (tanggal, kategori, jumlah)
+	- [ ] Status salary: Draft/Paid
 
 ## Implementation Details
 
