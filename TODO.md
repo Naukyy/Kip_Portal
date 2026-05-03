@@ -6,4 +6,3 @@
 - [x] Step 3: Verify fix by checking route:list and testing URL
 
 **Task completed! The ParseError is fixed. Visit http://127.0.0.1:8000/trainer/students (login as trainer first).**
-
