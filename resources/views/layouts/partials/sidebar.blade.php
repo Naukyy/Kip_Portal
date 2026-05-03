@@ -24,7 +24,7 @@
         @else
             {{-- TRAINER MENU --}}
             <x-nav-item route="trainer.dashboard" icon="home">Dashboard</x-nav-item>
-            <x-nav-item route="trainer.students" icon="users">Murid Saya</x-nav-item>
+            <x-nav-item route="trainer.students.index" icon="users">Murid Saya</x-nav-item>
             <x-nav-item route="trainer.attendance.index" icon="clipboard-list">Presensi Harian</x-nav-item>
             <x-nav-item route="trainer.attendance.recap" icon="table">Rekap Bulanan</x-nav-item>
             <x-nav-item route="trainer.payslip.index" icon="document-text">Slip Gaji</x-nav-item>

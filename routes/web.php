@@ -23,7 +23,8 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/', [Trainer\DashboardController::class, 'index'])->name('dashboard');
             
             // Students
-            Route::get('/students', [Trainer\StudentController::class, 'index'])->name('students');
+            Route::get('/students', [Trainer\StudentController::class, 'index'])->name('students.index');
+            Route::get('/students/{student}', [Trainer\StudentController::class, 'show'])->name('students.show');
             
             // Attendance
             Route::get('/attendance', [Trainer\AttendanceController::class, 'index'])->name('attendance.index');

@@ -23,7 +23,7 @@ class StudentController extends Controller
             ->orderBy('name')
             ->paginate(10);
             
-        return view('trainer.students.index', compact('students'));
+return view('trainer.students.list', compact('students'));
     }
     
     public function show(Student $student)
@@ -39,6 +39,6 @@ class StudentController extends Controller
             $query->orderBy('date', 'desc')->limit(30);
         }]);
         
-        return view('trainer.students.show', compact('student'));
+return view('trainer.students.detail', compact('student'));
     }
 }
