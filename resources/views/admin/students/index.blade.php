@@ -140,31 +140,31 @@
             
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">ID Siswa</label>
-                <input type="text" name="student_id" id="student-id" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-blue-500 focus:border-blue-500 outline-none" placeholder="STD-001">
+                <input type="text" name="student_id" id="student-id" value="{{ old('student_id') }}" class="w-full px-3 py-2 border {{ $errors->has('student_id') ? 'border-red-500' : 'border-gray-300 dark:border-gray-700' }} rounded bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-blue-500 focus:border-blue-500 outline-none {{ $errors->has('student_id') ? 'ring-2 ring-red-200' : '' }}" placeholder="STD-001">
             </div>
 
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nama Siswa *</label>
-                <input type="text" name="name" id="student-name" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-blue-500 focus:border-blue-500 outline-none" required>
+                <input type="text" name="name" id="student-name" value="{{ old('name') }}" class="w-full px-3 py-2 border {{ $errors->has('name') ? 'border-red-500' : 'border-gray-300 dark:border-gray-700' }} rounded bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-blue-500 focus:border-blue-500 outline-none {{ $errors->has('name') ? 'ring-2 ring-red-200' : '' }}" required>
             </div>
 
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Trainer *</label>
-                <select name="trainer_id" id="student-trainer" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-blue-500 focus:border-blue-500 outline-none" required>
+                <select name="trainer_id" id="student-trainer" {{ $errors->has('trainer_id') ? 'class="w-full px-3 py-2 border-red-500 ring-2 ring-red-200 rounded bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-blue-500 focus:border-blue-500 outline-none"' : 'class="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-blue-500 focus:border-blue-500 outline-none"' }} required>
                     <option value="">Pilih Trainer</option>
                     @foreach($trainers as $trainer)
-                        <option value="{{ $trainer->id }}">{{ $trainer->name }}</option>
+                        <option value="{{ $trainer->id }}" {{ old('trainer_id') == $trainer->id ? 'selected' : '' }}>{{ $trainer->name }}</option>
                     @endforeach
                 </select>
             </div>
 
 <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Periode</label>
-                <select name="periode" id="student-periode" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-blue-500 focus:border-blue-500 outline-none">
+                <select name="periode" id="student-periode" class="w-full px-3 py-2 border {{ $errors->has('periode') ? 'border-red-500' : 'border-gray-300 dark:border-gray-700' }} rounded bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-blue-500 focus:border-blue-500 outline-none {{ $errors->has('periode') ? 'ring-2 ring-red-200' : '' }}">
                     <option value="">Pilih Periode</option>
-                    <option value="2x">2x</option>
-                    <option value="3x">3x</option>
-                    <option value="5x">5x</option>
+                    <option value="2x" {{ old('periode') == '2x' ? 'selected' : '' }}>2x</option>
+                    <option value="3x" {{ old('periode') == '3x' ? 'selected' : '' }}>3x</option>
+                    <option value="5x" {{ old('periode') == '5x' ? 'selected' : '' }}>5x</option>
                 </select>
             </div>
 
@@ -187,12 +187,12 @@
 
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Telepon</label>
-                <input type="text" name="phone" id="student-phone" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-blue-500 focus:border-blue-500 outline-none">
+                <input type="text" name="phone" id="student-phone" value="{{ old('phone') }}" class="w-full px-3 py-2 border {{ $errors->has('phone') ? 'border-red-500' : 'border-gray-300 dark:border-gray-700' }} rounded bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-blue-500 focus:border-blue-500 outline-none {{ $errors->has('phone') ? 'ring-2 ring-red-200' : '' }}">
             </div>
 
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
-                <input type="email" name="email" id="student-email" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-blue-500 focus:border-blue-500 outline-none">
+                <input type="email" name="email" id="student-email" value="{{ old('email') }}" class="w-full px-3 py-2 border {{ $errors->has('email') ? 'border-red-500' : 'border-gray-300 dark:border-gray-700' }} rounded bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-blue-500 focus:border-blue-500 outline-none {{ $errors->has('email') ? 'ring-2 ring-red-200' : '' }}">
             </div>
 
             <div>
@@ -205,8 +205,8 @@
                 <input type="text" name="parent_phone" id="student-parent-phone" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-blue-500 focus:border-blue-500 outline-none">
             </div>
 
-            <div class="md:col-span-2 flex items-center pt-2">
-                <input type="checkbox" name="is_active" id="student-active" value="1" class="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 bg-white dark:bg-gray-800" checked>
+<div class="md:col-span-2 flex items-center pt-2">
+                <input type="checkbox" name="is_active" id="student-active" value="1" class="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 bg-white dark:bg-gray-800" {{ old('is_active', true) ? 'checked' : '' }}>
                 <label for="student-active" class="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300">Aktif</label>
             </div>
 
@@ -259,6 +259,24 @@ document.addEventListener('DOMContentLoaded', function() {
     // Show toast if success message exists
     @if(session('success'))
         showToast('{{ session("success") }}', 'success');
+    @endif
+    
+    // Handle validation errors - show error toast and reopen modal
+    @if($errors->any())
+        @if($errors->has('student_id'))
+        showToast('ID Siswa sudah digunakan sebelumnya!', 'error');
+        @else
+        showToast('{{ $errors->first() }}', 'error');
+        @endif
+        // Reopen modal with preserved data
+        setTimeout(() => {
+            document.getElementById('modal-title').textContent = 'Tambah Siswa';
+            document.getElementById('student-form').action = '{{ route("admin.students.store") }}';
+            document.getElementById('student-form').method = 'POST';
+            document.getElementById('student-modal').classList.remove('hidden');
+            document.getElementById('student-id').focus();
+            document.getElementById('student-id').select();
+        }, 100);
     @endif
 });
 

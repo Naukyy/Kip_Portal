@@ -1,7 +1,11 @@
-# Update Admin Student Session Options
+# Add Student Duplicate ID Validation Task
 
-## Steps:
-- [x] Step 1: Update public/js/admin-students.js (sessionTimeOptions and periodeOptions)
-- [x] Step 2: Update resources/views/admin/students/index.blade.php (modal session_time select, modal periode select, filter-session select)
-- [x] Step 3: Test changes (open page, check dropdowns)
-- [ ] Complete: Use attempt_completion
+**Status:** In Progress  
+**Completed Steps:** 2/4
+
+## Steps to Complete:
+1. ✅ Create TODO.md  
+2. ✅ Updated Blade with specific duplicate ID toast message  
+3. Add old() values and error styling to form inputs for proper red highlight  
+4. Add error handling JS block  
+5. Update TODO and complete
