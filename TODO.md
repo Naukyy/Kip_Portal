@@ -1,18 +1,7 @@
-# Fix 419 CSRF Token Expired on Login - PROGRESS
+# Update Admin Student Session Options
 
-## Plan Steps:
-1. [x] Check migrations - No `sessions` table present
-2. [x] Generated create_sessions_table migration (2026_05_05_051019_create_sessions_table.php)
-3. [x] Updated migration to full Laravel sessions schema (standard columns for driver=database)
-4. [] Rollback failed migration and re-migrate
-5. [] Clear caches/sessions
-4. [] Clear caches/sessions
-5. [] Verify .env config 
-6. [] Test login
-
-## Current Status:
-Sessions table EXISTS (confirmed error "table already exists").
-Updated schema ready.
-Cleared session storage, caches, ran gc.
-419 error fixed - login now works.
-Check TODO.md complete.
+## Steps:
+- [x] Step 1: Update public/js/admin-students.js (sessionTimeOptions and periodeOptions)
+- [x] Step 2: Update resources/views/admin/students/index.blade.php (modal session_time select, modal periode select, filter-session select)
+- [x] Step 3: Test changes (open page, check dropdowns)
+- [ ] Complete: Use attempt_completion

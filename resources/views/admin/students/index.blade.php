@@ -42,12 +42,11 @@
         </select>
         <select id="filter-session" class="px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none">
             <option value="">Semua Sesi</option>
-            <option value="08:00 - 09:30">08:00 - 09:30</option>
-            <option value="09:30 - 11:00">09:30 - 11:00</option>
-            <option value="11:00 - 12:30">11:00 - 12:30</option>
-            <option value="13:00 - 14:30">13:00 - 14:30</option>
-            <option value="14:30 - 16:00">14:30 - 16:00</option>
-            <option value="16:00 - 17:30">16:00 - 17:30</option>
+            <option value="08.00-09.30">08.00-09.30</option>
+            <option value="10.00-11.30">10.00-11.30</option>
+            <option value="14.00-15.30">14.00-15.30</option>
+            <option value="16.00-17.30">16.00-17.30</option>
+            <option value="18.45-20.15">18.45-20.15</option>
         </select>
     </div>
 
@@ -163,10 +162,8 @@
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Periode</label>
                 <select name="periode" id="student-periode" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-blue-500 focus:border-blue-500 outline-none">
                     <option value="">Pilih Periode</option>
-                    <option value="1x">1x</option>
                     <option value="2x">2x</option>
                     <option value="3x">3x</option>
-                    <option value="4x">4x</option>
                     <option value="5x">5x</option>
                 </select>
             </div>
@@ -175,12 +172,11 @@
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Sessions</label>
                 <select name="session_time" id="student-session" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-blue-500 focus:border-blue-500 outline-none">
                     <option value="">Pilih Sesi</option>
-                    <option value="08:00 - 09:30">08:00 - 09:30</option>
-                    <option value="09:30 - 11:00">09:30 - 11:00</option>
-                    <option value="11:00 - 12:30">11:00 - 12:30</option>
-                    <option value="13:00 - 14:30">13:00 - 14:30</option>
-                    <option value="14:30 - 16:00">14:30 - 16:00</option>
-                    <option value="16:00 - 17:30">16:00 - 17:30</option>
+                    <option value="08.00-09.30">08.00-09.30</option>
+                    <option value="10.00-11.30">10.00-11.30</option>
+                    <option value="14.00-15.30">14.00-15.30</option>
+                    <option value="16.00-17.30">16.00-17.30</option>
+                    <option value="18.45-20.15">18.45-20.15</option>
                 </select>
             </div>
 

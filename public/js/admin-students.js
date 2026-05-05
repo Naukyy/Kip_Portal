@@ -92,16 +92,15 @@ function inlineUpdate(studentId, field, value, row) {
 
 // Session time options (same as search dropdown)
 const sessionTimeOptions = [
-    '08:00 - 09:30',
-    '09:30 - 11:00',
-    '11:00 - 12:30',
-    '13:00 - 14:30',
-    '14:30 - 16:00',
-    '16:00 - 17:30'
+    '08.00-09.30',
+    '10.00-11.30',
+    '14.00-15.30',
+    '16.00-17.30',
+    '18.45-20.15'
 ];
 
 // Periode options (1x to 5x)
-const periodeOptions = ['1x', '2x', '3x', '4x', '5x'];
+const periodeOptions = ['2x', '3x', '5x'];
 
 // Create inline editable cell
 function makeCellEditable(cell, studentId, field, currentValue) {
