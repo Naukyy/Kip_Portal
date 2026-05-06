@@ -39,8 +39,9 @@ export default {
     plugins: [forms],
     // Pastikan semua safe-list warna dinamis Tailwind tidak di-purge
     safelist: [
-        { pattern: /bg-(green|yellow|red)-(100|900)/ },
-        { pattern: /border-(green|yellow|red)-400/ },
-        { pattern: /text-(green|yellow|red)-(700|300)/ },
+        { pattern: /bg-(green|yellow|red|orange)-(100|900)/ },
+        { pattern: /border-(green|yellow|red|orange)-[347]00/ },
+        { pattern: /text-(green|yellow|red|orange)-(700|300|400)/ },
+        'badge-hadir', 'badge-alpha', 'badge-sakit', 'badge-izin',
     ],
 };

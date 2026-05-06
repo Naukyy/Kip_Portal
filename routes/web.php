@@ -26,10 +26,18 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/students', [Trainer\StudentController::class, 'index'])->name('students.index');
             Route::get('/students/{student}', [Trainer\StudentController::class, 'show'])->name('students.show');
             
-            // Attendance
+            // Attendance — Jadwal Harian
             Route::get('/attendance', [Trainer\AttendanceController::class, 'index'])->name('attendance.index');
             Route::post('/attendance', [Trainer\AttendanceController::class, 'store'])->name('attendance.store');
             Route::get('/attendance/recap', [Trainer\AttendanceController::class, 'recap'])->name('attendance.recap');
+
+            // Attendance — Presensi SPA per Meeting
+            Route::get('/attendance/meeting/{meeting}', [Trainer\AttendanceController::class, 'show'])->name('attendance.show');
+
+            // Attendance — AJAX Endpoints
+            Route::post('/attendance/meeting/{meeting}/start', [Trainer\AttendanceController::class, 'startClass'])->name('attendance.start');
+            Route::post('/attendance/meeting/{meeting}/status', [Trainer\AttendanceController::class, 'updateStatus'])->name('attendance.status');
+            Route::post('/attendance/meeting/{meeting}/end', [Trainer\AttendanceController::class, 'endClass'])->name('attendance.end');
             
             // Payslip
             Route::get('/payslip', [Trainer\PayslipController::class, 'index'])->name('payslip.index');
