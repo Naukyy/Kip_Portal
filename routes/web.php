@@ -37,6 +37,8 @@ Route::middleware(['auth'])->group(function () {
             // Attendance — AJAX Endpoints
             Route::post('/attendance/meeting/{meeting}/start', [Trainer\AttendanceController::class, 'startClass'])->name('attendance.start');
             Route::post('/attendance/meeting/{meeting}/status', [Trainer\AttendanceController::class, 'updateStatus'])->name('attendance.status');
+            // Move izin/sakit ke tanggal lain
+            Route::post('/attendance/meeting/{meeting}/move-status', [Trainer\AttendanceController::class, 'moveStatus'])->name('attendance.move-status');
             Route::post('/attendance/meeting/{meeting}/end', [Trainer\AttendanceController::class, 'endClass'])->name('attendance.end');
             
             // Payslip

@@ -57,7 +57,7 @@
             :class="statusBadgeClass()"
             class="px-3 py-1 rounded-full text-xs font-semibold transition-all duration-500">
       </span>
-      <span x-show="classState==='in_progress'" class="text-xs text-gray-400 dark:text-gray-500">
+      <span x-show="(classState || '')==='in_progress'" class="text-xs text-gray-400 dark:text-gray-500">
         Mulai: <span x-text="startedAt"></span>
       </span>
     </div>
@@ -166,11 +166,11 @@
                       class="btn-status w-8 h-8 rounded-lg text-xs font-bold
                              bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400
                              border border-red-300 dark:border-red-700" title="Alpha">A</button>
-              <button @click="setStatus(s, 'sakit')"
+              <button @click="moveOrSet(s, 'sakit')"
                       class="btn-status w-8 h-8 rounded-lg text-xs font-bold
                              bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400
                              border border-orange-300 dark:border-orange-700" title="Sakit">S</button>
-              <button @click="setStatus(s, 'izin')"
+              <button @click="moveOrSet(s, 'izin')"
                       class="btn-status w-8 h-8 rounded-lg text-xs font-bold
                              bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400
                              border border-yellow-300 dark:border-yellow-700" title="Izin">I</button>
@@ -324,85 +324,132 @@
 @push('scripts')
 <script>
 function attendanceSPA() {
+  const csrfToken = document.querySelector('meta[name=csrf-token]')?.content;
+
   return {
-    classState: '{{ $meeting->status }}',
+    // --- State (ALWAYS defined for Alpine) ---
+    classState: @json($meeting->status),
     starting: false,
     ending: false,
     confirmEnd: false,
     errorMsg: '',
-    startedAt: '{{ $meeting->started_at ?? "" }}',
-    statusLabels: { hadir:'Hadir', alpha:'Alpha', sakit:'Sakit', izin:'Izin', pending:'Pending' },
+    startedAt: @json($meeting->started_at ?? ''),
 
-    // All students from server
+    statusLabels: { hadir: 'Hadir', alpha: 'Alpha', sakit: 'Sakit', izin: 'Izin', pending: 'Pending' },
+
+    // --- Data ---
     allStudents: @json($studentData),
 
-    get pendingStudents() { return this.allStudents.filter(s => s.status === 'pending'); },
-    get doneStudents()    { return this.allStudents.filter(s => s.status !== 'pending'); },
+    // --- Derived ---
+    get pendingStudents() {
+      return this.allStudents.filter(s => s.status === 'pending');
+    },
+    get doneStudents() {
+      return this.allStudents.filter(s => s.status !== 'pending');
+    },
 
-    init() {},
-
+    // --- UI helpers ---
     statusLabel() {
-      return { pending:'Belum Mulai', in_progress:'🟢 Berlangsung', completed:'✓ Selesai' }[this.classState] ?? '';
+      return { pending: 'Belum Mulai', in_progress: '🟢 Berlangsung', completed: '✓ Selesai' }[this.classState] ?? '';
     },
     statusBadgeClass() {
       return {
-        pending:     'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full px-3 py-1 text-xs font-semibold',
+        pending: 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full px-3 py-1 text-xs font-semibold',
         in_progress: 'bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-full px-3 py-1 text-xs font-semibold',
-        completed:   'bg-gray-100 dark:bg-gray-800 text-gray-500 rounded-full px-3 py-1 text-xs font-semibold',
+        completed: 'bg-gray-100 dark:bg-gray-800 text-gray-500 rounded-full px-3 py-1 text-xs font-semibold',
       }[this.classState] ?? '';
     },
 
+    init() {},
+
+    // --- Actions ---
     async startClass() {
       this.starting = true;
+      this.errorMsg = '';
       try {
         const res = await fetch('{{ route("trainer.attendance.start", $meeting) }}', {
           method: 'POST',
-          headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content, 'Accept': 'application/json' }
+          headers: {
+            'X-CSRF-TOKEN': csrfToken,
+            'Accept': 'application/json'
+          }
         });
+
         const data = await res.json();
         if (data.success) {
           this.classState = 'in_progress';
           this.startedAt = data.started_at ?? '';
-        } else { this.errorMsg = data.message ?? 'Gagal memulai kelas.'; }
-      } catch(e) { this.errorMsg = 'Terjadi kesalahan jaringan.'; }
-      finally { this.starting = false; }
+        } else {
+          this.errorMsg = data.message ?? 'Gagal memulai kelas.';
+        }
+      } catch (e) {
+        this.errorMsg = 'Terjadi kesalahan jaringan.';
+      } finally {
+        this.starting = false;
+      }
     },
 
     async setStatus(student, status) {
       const prev = student.status;
       student.status = status; // optimistic
+      this.errorMsg = '';
+
       try {
         const res = await fetch('{{ route("trainer.attendance.status", $meeting) }}', {
           method: 'POST',
           headers: {
-            'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content,
-            'Content-Type': 'application/json', 'Accept': 'application/json'
+            'X-CSRF-TOKEN': csrfToken,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
           },
           body: JSON.stringify({ student_id: student.id, status })
         });
+
         const data = await res.json();
-        if (!data.success) { student.status = prev; this.errorMsg = data.message ?? 'Gagal update.'; }
-      } catch(e) { student.status = prev; this.errorMsg = 'Terjadi kesalahan jaringan.'; }
+        if (!data.success) {
+          student.status = prev;
+          this.errorMsg = data.message ?? 'Gagal update.';
+        }
+      } catch (e) {
+        student.status = prev;
+        this.errorMsg = 'Terjadi kesalahan jaringan.';
+      }
     },
 
     async undoStatus(student) {
       await this.setStatus(student, 'pending');
     },
 
+    async moveOrSet(student, status) {
+      return this.setStatus(student, status);
+    },
+
     async endClass() {
       this.ending = true;
+      this.errorMsg = '';
+
       try {
         const res = await fetch('{{ route("trainer.attendance.end", $meeting) }}', {
           method: 'POST',
-          headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content, 'Accept': 'application/json' }
+          headers: {
+            'X-CSRF-TOKEN': csrfToken,
+            'Accept': 'application/json'
+          }
         });
+
         const data = await res.json();
         if (data.success) {
           this.classState = 'completed';
           this.confirmEnd = false;
-        } else { this.errorMsg = data.message ?? 'Gagal mengakhiri kelas.'; this.confirmEnd = false; }
-      } catch(e) { this.errorMsg = 'Terjadi kesalahan jaringan.'; }
-      finally { this.ending = false; }
+        } else {
+          this.errorMsg = data.message ?? 'Gagal mengakhiri kelas.';
+          this.confirmEnd = false;
+        }
+      } catch (e) {
+        this.errorMsg = 'Terjadi kesalahan jaringan.';
+      } finally {
+        this.ending = false;
+      }
     },
   };
 }

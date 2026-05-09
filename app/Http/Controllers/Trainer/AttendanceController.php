@@ -72,7 +72,7 @@ class AttendanceController extends Controller
             ->orderBy('name')
             ->get();
 
-        // Inisialisasi attendance record (pending) untuk siswa yang belum ada
+        // Inisialisasi attendance record (pending) untuk siswa yang akan ditampilkan
         foreach ($students as $student) {
             Attendance::updateOrCreate(
                 [
@@ -86,6 +86,7 @@ class AttendanceController extends Controller
                 ]
             );
         }
+
 
         // Reload attendances
         $attendances = Attendance::where('class_meeting_id', $meeting->id)
@@ -138,6 +139,7 @@ class AttendanceController extends Controller
             'status'     => 'required|in:pending,hadir,alpha,sakit,izin',
         ]);
 
+        // normal update
         $attendance = Attendance::where('class_meeting_id', $meeting->id)
             ->where('student_id', $request->student_id)
             ->firstOrFail();
@@ -150,6 +152,46 @@ class AttendanceController extends Controller
             'status'     => $attendance->status,
             'label'      => $attendance->statusLabel(),
             'color'      => $attendance->statusColor(),
+        ]);
+    }
+
+    // AJAX: Move attendance when status is izin/sakit
+    // - create/update attendance for target_date (same trainer + same session_time as current meeting)
+    // - set status on current date to same status (sesuai pilihan user: tetap izin/sakit)
+    public function moveStatus(Request $request, ClassMeeting $meeting)
+    {
+        abort_if($meeting->trainer_id !== auth()->id(), 403);
+        abort_if($meeting->status !== 'in_progress', 422, 'Kelas belum dimulai.');
+
+        $request->validate([
+            'student_id'  => 'required|exists:students,id',
+            'status'      => 'required|in:sakit,izin',
+            'target_date' => 'required|date',
+        ]);
+
+        $trainer = auth()->user();
+        $targetDate = Carbon::parse($request->target_date)->toDateString();
+
+        // Pastikan student milik trainer
+        abort_if(!Student::where('id', $request->student_id)->where('trainer_id', $trainer->id)->exists(), 403);
+
+        // Ensure class meeting exists for target date and same session_time
+        $dayName = Carbon::parse($targetDate)->locale('id')->dayName;
+        $targetMeeting = ClassMeeting::firstOrCreate(
+            [
+                'trainer_id' => $trainer->id,
+                'date' => $targetDate,
+                'session_time' => $meeting->session_time,
+            ],
+            [
+                'day_name' => $dayName,
+                'status' => 'pending',
+            ]
+        );
+
+        return response()->json([
+            'success' => true,
+            'target_meeting_id' => $targetMeeting->id,
         ]);
     }
 
@@ -195,20 +237,42 @@ class AttendanceController extends Controller
     public function recap(Request $request)
     {
         $trainer = auth()->user();
-        $month   = $request->month ?? now()->month;
-        $year    = $request->year  ?? now()->year;
+        $month   = (int) ($request->month ?? now()->month);
+        $year    = (int) ($request->year  ?? now()->year);
+        $sessionTime = $request->session_time ?: null;
 
-        $students = Student::where('trainer_id', $trainer->id)
+        // daftar sesi (session_time) untuk trainer ini
+        $sessions = Student::where('trainer_id', $trainer->id)
             ->where('is_active', true)
-            ->with(['attendances' => function ($q) use ($month, $year) {
-                $q->whereMonth('date', $month)->whereYear('date', $year);
-            }])
-            ->get();
+            ->distinct()
+            ->orderBy('session_time')
+            ->pluck('session_time')
+            ->filter()
+            ->values();
 
         $daysInMonth = Carbon::createFromDate($year, $month, 1)->daysInMonth;
 
+        $students = Student::where('trainer_id', $trainer->id)
+            ->where('is_active', true)
+            // ketika sesi dipilih, hanya ambil murid yang berada di sesi tsb
+            ->when($sessionTime, fn ($q) => $q->where('session_time', $sessionTime))
+            ->with(['attendances' => function ($q) use ($month, $year, $sessionTime) {
+                $q->whereMonth('date', $month)->whereYear('date', $year);
+
+                // filter berdasarkan sesi pada level attendance via relasi classMeeting
+                if ($sessionTime) {
+                    $q->whereHas('classMeeting', function ($cq) use ($sessionTime) {
+                        $cq->where('session_time', $sessionTime);
+                    });
+                }
+            }])
+            ->get();
+
         return view('trainer.attendance.recap', compact(
-            'students', 'month', 'year', 'daysInMonth'
-        ));
+            'students', 'month', 'year', 'daysInMonth', 'sessions', 'sessionTime',
+        ))->with([
+            'selectedSessionTime' => $sessionTime,
+            'currentYear' => now()->year,
+        ]);
     }
 }
