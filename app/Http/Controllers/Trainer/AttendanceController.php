@@ -22,15 +22,60 @@ class AttendanceController extends Controller
         $date    = $request->date ? Carbon::parse($request->date) : Carbon::today();
         $dayName = $date->locale('id')->dayName; // e.g. "Senin"
 
-        // Ambil siswa aktif trainer ini yang memiliki jadwal di hari ini (source utama)
+        // Sumber 1: siswa aktif yang memang memiliki jadwal hari ini
         $students = Student::where('trainer_id', $trainer->id)
             ->where('is_active', true)
             ->where('schedule', 'like', "%{$dayName}%")
             ->orderBy('session_time')
             ->get();
 
-        // Kelompokkan berdasarkan session_time
+        // Kelompokkan berdasarkan session_time (jadwal hari ini)
         $sessionGroups = $students->groupBy('session_time');
+
+        // Sumber 2: siswa yang dipindahkan sebelumnya (attendance pada tanggal ini)
+        // agar UI tetap menampilkan sesi target dan jumlah muridnya, walaupun jadwal asli hari itu kosong.
+        $movedAttendances = Attendance::query()
+            ->where('attendances.trainer_id', $trainer->id)
+            ->where('attendances.date', $date->toDateString())
+            ->whereIn('attendances.status', ['hadir', 'alpha', 'sakit', 'izin', 'pending'])
+            ->join('class_meetings', 'class_meetings.id', '=', 'attendances.class_meeting_id')
+            ->select('attendances.student_id', 'class_meetings.session_time')
+            ->distinct()
+            ->get();
+
+        if ($movedAttendances->isNotEmpty()) {
+            $movedStudentIds = $movedAttendances->pluck('student_id')->unique()->values();
+            $movedStudents = Student::where('trainer_id', $trainer->id)
+                ->where('is_active', true)
+                ->whereIn('id', $movedStudentIds)
+                ->orderBy('name')
+                ->get();
+
+            // Buat map student_id => student
+            $studentMap = $movedStudents->keyBy('id');
+
+            // Kelompokkan berdasarkan session_time hasil attendance target
+            $movedGroups = $movedAttendances->groupBy('session_time')->map(function ($rows) use ($studentMap) {
+                return $rows
+                    ->pluck('student_id')
+                    ->unique()
+                    ->map(fn ($id) => $studentMap->get($id))
+                    ->filter();
+            });
+
+            // Merge ke sessionGroups (gabungkan koleksi)
+            foreach ($movedGroups as $sessionTime => $movedGroup) {
+                if (!isset($sessionGroups[$sessionTime])) {
+                    $sessionGroups[$sessionTime] = collect();
+                }
+
+                $sessionGroups[$sessionTime] = $sessionGroups[$sessionTime]
+                    ->concat($movedGroup)
+                    ->unique('id')
+                    ->values();
+            }
+        }
+
 
         // Ambil session_time yang sudah memiliki Attendance pada tanggal ini
         // (agar kelas hasil move tetap muncul meskipun schedule murid hari target tidak ada)
@@ -226,13 +271,18 @@ class AttendanceController extends Controller
 
         return DB::transaction(function () use ($request, $meeting, $trainer, $targetDate, $targetSessionTime, $status) {
             // Cari apakah student sudah punya attendance pada tanggal target untuk sesi yang dituju
-            $existing = Attendance::where('trainer_id', $trainer->id)
-                ->where('student_id', $request->student_id)
-                ->where('date', $targetDate)
-                ->whereHas('classMeeting', function ($q) use ($targetSessionTime) {
-                    $q->where('session_time', $targetSessionTime);
-                })
+            // (gunakan join ke class_meetings agar session_time benar + pastikan milik trainer yang sama)
+            $existing = Attendance::query()
+                ->where('attendances.trainer_id', $trainer->id)
+                ->where('attendances.student_id', $request->student_id)
+                ->where('attendances.date', $targetDate)
+                ->join('class_meetings', 'class_meetings.id', '=', 'attendances.class_meeting_id')
+                ->where('class_meetings.trainer_id', $trainer->id)
+                ->where('class_meetings.session_time', $targetSessionTime)
+                ->select('attendances.*')
                 ->first();
+
+
 
             // Jika sudah ada selain pending, tolak total (tanpa create/update apa pun)
             if ($existing && $existing->status !== 'pending') {
@@ -258,6 +308,7 @@ class AttendanceController extends Controller
             );
 
             // Create/update attendance on target meeting
+            // Jika record pending sudah ada, update menjadi izin/sakit (sesuai tujuan pemindahan)
             Attendance::updateOrCreate(
                 [
                     'class_meeting_id' => $targetMeeting->id,
@@ -269,6 +320,7 @@ class AttendanceController extends Controller
                     'status' => $status,
                 ]
             );
+
 
             // Update status di meeting asal
             Attendance::where('class_meeting_id', $meeting->id)
