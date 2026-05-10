@@ -9,6 +9,7 @@ use App\Models\Student;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class AttendanceController extends Controller
 {
@@ -21,7 +22,7 @@ class AttendanceController extends Controller
         $date    = $request->date ? Carbon::parse($request->date) : Carbon::today();
         $dayName = $date->locale('id')->dayName; // e.g. "Senin"
 
-        // Ambil siswa aktif trainer ini yang memiliki jadwal di hari ini
+        // Ambil siswa aktif trainer ini yang memiliki jadwal di hari ini (source utama)
         $students = Student::where('trainer_id', $trainer->id)
             ->where('is_active', true)
             ->where('schedule', 'like', "%{$dayName}%")
@@ -31,9 +32,31 @@ class AttendanceController extends Controller
         // Kelompokkan berdasarkan session_time
         $sessionGroups = $students->groupBy('session_time');
 
+        // Ambil session_time yang sudah memiliki Attendance pada tanggal ini
+        // (agar kelas hasil move tetap muncul meskipun schedule murid hari target tidak ada)
+        $attendanceSessionTimes = Attendance::query()
+            ->join('class_meetings', 'class_meetings.id', '=', 'attendances.class_meeting_id')
+            ->where('attendances.trainer_id', $trainer->id)
+            ->where('attendances.date', $date->toDateString())
+            ->distinct()
+            ->pluck('class_meetings.session_time')
+            ->values();
+
+
+        $allSessionTimes = $sessionGroups->keys()
+            ->concat($attendanceSessionTimes)
+            ->unique()
+            ->values();
+
+        // Kalau schedule kosong tapi ada data attendance (mis. hasil pindahan),
+        // sessionGroups juga harus tetap punya key supaya view tidak menganggap hari ini kosong.
+        if ($sessionGroups->isEmpty() && $allSessionTimes->isNotEmpty()) {
+            $sessionGroups = $allSessionTimes->mapWithKeys(fn ($t) => [$t => collect()]);
+        }
+
         // Ambil / buat class meeting untuk setiap sesi di tanggal ini
         $meetings = [];
-        foreach ($sessionGroups as $sessionTime => $sessionStudents) {
+        foreach ($allSessionTimes as $sessionTime) {
             $meeting = ClassMeeting::firstOrCreate(
                 [
                     'trainer_id'   => $trainer->id,
@@ -65,12 +88,30 @@ class AttendanceController extends Controller
 
         // Ambil siswa untuk sesi ini (session_time cocok) dan sesuai jadwal hari ini
         $dayName = $meeting->date->locale('id')->dayName;
-        $students = Student::where('trainer_id', $trainer->id)
+        $scheduledStudents = Student::where('trainer_id', $trainer->id)
             ->where('is_active', true)
             ->where('session_time', $meeting->session_time)
             ->where('schedule', 'like', "%{$dayName}%")
             ->orderBy('name')
             ->get();
+
+        // Ambil siswa yang sudah punya Attendance pada meeting ini (walau tidak sesuai schedule)
+        $attendanceStudentIds = Attendance::where('class_meeting_id', $meeting->id)
+            ->where('trainer_id', $trainer->id)
+            ->pluck('student_id')
+            ->values();
+
+        $movedStudents = Student::where('trainer_id', $trainer->id)
+            ->where('is_active', true)
+            ->whereIn('id', $attendanceStudentIds)
+            ->orderBy('name')
+            ->get();
+
+        // Union + unik berdasarkan student id
+        $students = $scheduledStudents
+            ->concat($movedStudents)
+            ->unique('id')
+            ->values();
 
         // Inisialisasi attendance record (pending) untuk siswa yang akan ditampilkan
         foreach ($students as $student) {
@@ -86,7 +127,6 @@ class AttendanceController extends Controller
                 ]
             );
         }
-
 
         // Reload attendances
         $attendances = Attendance::where('class_meeting_id', $meeting->id)
@@ -105,9 +145,10 @@ class AttendanceController extends Controller
             'status'     => $attendances->get($s->id)?->status ?? 'pending',
         ]);
 
-        return view('trainer.attendance.attendance', compact(
+        return view('trainer.attendance.attendance_fixed', compact(
             'meeting', 'students', 'attendances', 'date', 'studentData'
         ));
+
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -156,43 +197,92 @@ class AttendanceController extends Controller
     }
 
     // AJAX: Move attendance when status is izin/sakit
-    // - create/update attendance for target_date (same trainer + same session_time as current meeting)
-    // - set status on current date to same status (sesuai pilihan user: tetap izin/sakit)
+    // - create/update Attendance on target_date + target_session_time
+    // - if Attendance on target exists with status != pending => reject (422)
+    // - status on current meeting will be handled by frontend (set to izin/sakit)
     public function moveStatus(Request $request, ClassMeeting $meeting)
     {
-        abort_if($meeting->trainer_id !== auth()->id(), 403);
+        $trainer = auth()->user();
+        // catatan: VSCode Intelephense bisa memberi warning untuk auth()->user(), namun saat runtime biasanya normal.
+        // Fokus fix bug ada di rollback/cleanup pemindahan.
+
+        abort_if($meeting->trainer_id !== $trainer->id, 403);
         abort_if($meeting->status !== 'in_progress', 422, 'Kelas belum dimulai.');
 
         $request->validate([
-            'student_id'  => 'required|exists:students,id',
-            'status'      => 'required|in:sakit,izin',
-            'target_date' => 'required|date',
+            'student_id'          => 'required|exists:students,id',
+            'status'              => 'required|in:sakit,izin',
+            'target_date'         => 'required|date',
+            'target_session_time' => 'required|string',
         ]);
 
-        $trainer = auth()->user();
         $targetDate = Carbon::parse($request->target_date)->toDateString();
+        $targetSessionTime = $request->target_session_time;
+        $status = $request->status;
+
 
         // Pastikan student milik trainer
         abort_if(!Student::where('id', $request->student_id)->where('trainer_id', $trainer->id)->exists(), 403);
 
-        // Ensure class meeting exists for target date and same session_time
-        $dayName = Carbon::parse($targetDate)->locale('id')->dayName;
-        $targetMeeting = ClassMeeting::firstOrCreate(
-            [
-                'trainer_id' => $trainer->id,
-                'date' => $targetDate,
-                'session_time' => $meeting->session_time,
-            ],
-            [
-                'day_name' => $dayName,
-                'status' => 'pending',
-            ]
-        );
+        return DB::transaction(function () use ($request, $meeting, $trainer, $targetDate, $targetSessionTime, $status) {
+            // Cari apakah student sudah punya attendance pada tanggal target untuk sesi yang dituju
+            $existing = Attendance::where('trainer_id', $trainer->id)
+                ->where('student_id', $request->student_id)
+                ->where('date', $targetDate)
+                ->whereHas('classMeeting', function ($q) use ($targetSessionTime) {
+                    $q->where('session_time', $targetSessionTime);
+                })
+                ->first();
 
-        return response()->json([
-            'success' => true,
-            'target_meeting_id' => $targetMeeting->id,
-        ]);
+            // Jika sudah ada selain pending, tolak total (tanpa create/update apa pun)
+            if ($existing && $existing->status !== 'pending') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Tidak bisa memindahkan: murid sudah memiliki presensi pada tanggal/sesi tersebut.',
+                ], 422);
+            }
+
+            $dayName = Carbon::parse($targetDate)->locale('id')->dayName;
+
+            // Ensure class meeting exists for target date + target session time
+            $targetMeeting = ClassMeeting::firstOrCreate(
+                [
+                    'trainer_id' => $trainer->id,
+                    'date' => $targetDate,
+                    'session_time' => $targetSessionTime,
+                ],
+                [
+                    'day_name' => $dayName,
+                    'status' => 'pending',
+                ]
+            );
+
+            // Create/update attendance on target meeting
+            Attendance::updateOrCreate(
+                [
+                    'class_meeting_id' => $targetMeeting->id,
+                    'student_id' => $request->student_id,
+                    'date' => $targetDate,
+                ],
+                [
+                    'trainer_id' => $trainer->id,
+                    'status' => $status,
+                ]
+            );
+
+            // Update status di meeting asal
+            Attendance::where('class_meeting_id', $meeting->id)
+                ->where('student_id', $request->student_id)
+                ->update([
+                    'status' => $status,
+                    'trainer_id' => $trainer->id,
+                ]);
+
+            return response()->json([
+                'success' => true,
+                'target_meeting_id' => $targetMeeting->id,
+            ]);
+        });
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -203,17 +293,57 @@ class AttendanceController extends Controller
         abort_if($meeting->trainer_id !== auth()->id(), 403);
         abort_if($meeting->status !== 'in_progress', 422, 'Kelas belum dimulai.');
 
-        // Pastikan tidak ada siswa yang masih pending
+        // Pastikan tidak ada siswa yang masih pending pada meeting ini.
+        // Catatan: untuk izin/sakit yang dipindahkan, siswa menjadi 'izin'/'sakit'
+        // sehingga tidak akan menghambat end class.
         $pendingCount = Attendance::where('class_meeting_id', $meeting->id)
             ->where('status', 'pending')
             ->count();
 
+
         if ($pendingCount > 0) {
+            // FIX: rollback pemindahan izin/sakit yang terlanjur dibuat ke meeting lain saat meeting asal gagal di-end.
+            // Karena pada flow ini, moveStatus() bisa sudah membuat Attendance target (status izin/sakit),
+            // sehingga tanggal target jadi 'terkunci' dan tidak bisa dipindah lagi.
+            //
+            // Cara rollback yang paling aman tanpa skema tambahan: kembalikan siswa yang dipindahkan pada meeting asal
+            // sekaligus hapus record target untuk siswa yang sama yang berada pada tanggal yang sama dengan meeting asal.
+
+            // 1) Ambil daftar siswa di meeting asal yang statusnya sudah izin/sakit (yang berpotensi dipindah)
+            $movedStudentIds = Attendance::where('class_meeting_id', $meeting->id)
+                ->whereIn('status', ['izin', 'sakit'])
+                ->pluck('student_id')
+                ->values();
+
+            if ($movedStudentIds->isNotEmpty()) {
+                // 2) Hapus attendance target untuk siswa tersebut yang status izin/sakit dan berada pada tanggal meeting asal,
+                //    supaya moveStatus sebelumnya tidak meninggalkan 'tanggal terkunci' untuk sesi yang sama.
+                //    (Jika user memindah ke tanggal berbeda, recordnya juga bisa dianggap draft, namun tanpa penanda
+                //    kita tidak bisa membedakan mana yang dibuat oleh batch moveStatus ini.)
+                Attendance::where('trainer_id', $meeting->trainer_id)
+                    ->whereIn('student_id', $movedStudentIds)
+                    ->where('date', $meeting->date->toDateString())
+                    ->whereIn('status', ['izin', 'sakit'])
+                    // hanya hapus yang berada di kelas lain pada date+student yang sama,
+                    // karena itu sisa pemindahan yang dilakukan saat meeting asal gagal.
+                    ->where('class_meeting_id', '!=', $meeting->id)
+                    ->delete();
+
+
+                // 3) Kembalikan status pada meeting asal menjadi pending (biar endClass tetap ditolak sesuai pendingCount asli)
+                Attendance::where('class_meeting_id', $meeting->id)
+                    ->whereIn('student_id', $movedStudentIds)
+                    ->update([
+                        'status' => 'pending',
+                    ]);
+            }
+
             return response()->json([
                 'success' => false,
                 'message' => "Masih ada {$pendingCount} siswa yang belum diabsen.",
             ], 422);
         }
+
 
         $meeting->update([
             'status'   => 'completed',

@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@@extends('layouts.app')
 @section('title', 'Presensi — ' . $meeting->session_time)
 
 @push('styles')
@@ -166,11 +166,11 @@
                       class="btn-status w-8 h-8 rounded-lg text-xs font-bold
                              bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400
                              border border-red-300 dark:border-red-700" title="Alpha">A</button>
-              <button @click="moveOrSet(s, 'sakit')"
+              <button @click="openMoveModal(s, 'sakit')"
                       class="btn-status w-8 h-8 rounded-lg text-xs font-bold
                              bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400
                              border border-orange-300 dark:border-orange-700" title="Sakit">S</button>
-              <button @click="moveOrSet(s, 'izin')"
+              <button @click="openMoveModal(s, 'izin')"
                       class="btn-status w-8 h-8 rounded-lg text-xs font-bold
                              bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400
                              border border-yellow-300 dark:border-yellow-700" title="Izin">I</button>
@@ -200,6 +200,7 @@
         </template>
 
         <template x-for="s in doneStudents" :key="s.id">
+
           <div class="student-row entering flex items-center gap-3 p-3 rounded-xl
                       bg-gray-50 dark:bg-gray-800/50
                       border border-gray-100 dark:border-gray-800">
@@ -265,8 +266,106 @@
     </div>
   </div>
 
+  {{-- ── Move Modal (izin/sakit → pindah tanggal) ───── --}}
+  <div x-show="moveModal"
+       x-transition:enter="transition ease-out duration-200"
+       x-transition:enter-start="opacity-0 scale-95"
+       x-transition:enter-end="opacity-100 scale-100"
+       class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60">
+
+    <div @click.stop
+         class="bg-white dark:bg-[#111827] rounded-2xl border border-gray-200 dark:border-gray-700
+                shadow-2xl p-6 max-w-md w-full"
+         x-transition>
+
+      <div class="flex items-center gap-3 mb-3">
+        <div class="w-10 h-10 rounded-full bg-yellow-100 dark:bg-yellow-900/40 flex items-center justify-center">
+          <svg class="w-5 h-5 text-yellow-600 dark:text-yellow-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+        </div>
+        <div>
+          <h4 class="font-bold text-gray-900 dark:text-white">Pindahkan Presensi</h4>
+          <p class="text-xs text-gray-500 dark:text-gray-400">Untuk murid: <span x-text="moveStudent?.name"></span></p>
+        </div>
+      </div>
+
+      <div class="space-y-4">
+        <div>
+          <label class="text-xs font-semibold text-gray-600 dark:text-gray-300">Status</label>
+          <div class="mt-1 flex gap-2">
+            <button type="button"
+                    @click="moveStatusValue='sakit'"
+                    :class="moveStatusValue==='sakit'
+                  ? 'bg-orange-50 dark:bg-orange-900/30 border-orange-300 dark:border-orange-700 text-orange-700 dark:text-orange-300'
+                      : 'bg-white dark:bg-[#111827] border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300'
+                    class="flex-1 px-3 py-2 rounded-xl border text-sm font-semibold transition-colors">
+              Sakit
+            </button>
+            <button type="button"
+                    @click="moveStatusValue='izin'"
+                    :class="moveStatusValue==='izin'
+                      ? 'bg-yellow-50 dark:bg-yellow-900/30 border-yellow-300 dark:border-yellow-700 text-yellow-700 dark:text-yellow-300'
+                      : 'bg-white dark:bg-[#111827] border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300'"
+                    class="flex-1 px-3 py-2 rounded-xl border text-sm font-semibold transition-colors">
+              Izin
+            </button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="text-xs font-semibold text-gray-600 dark:text-gray-300">Tanggal Target</label>
+            <input type="date"
+                   class="mt-1 w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700
+                          bg-white dark:bg-[#111827] text-sm text-gray-900 dark:text-white"
+                   x-model="moveTargetDate" />
+            <p class="mt-1 text-[11px] text-gray-500 dark:text-gray-400">
+              Sistem akan membuat/update presensi pada tanggal & sesi ini.
+            </p>
+          </div>
+          <div>
+            <label class="text-xs font-semibold text-gray-600 dark:text-gray-300">Sesi Target</label>
+            <select class="mt-1 w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700
+                           bg-white dark:bg-[#111827] text-sm text-gray-900 dark:text-white"
+                    x-model="moveTargetSessionTime">
+              <template x-for="t in moveAvailableSessionTimes" :key="t">
+                <option :value="t" x-text="t"></option>
+              </template>
+            </select>
+          </div>
+        </div>
+
+        <div class="rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/30 p-3">
+          <div class="text-xs font-semibold text-gray-700 dark:text-gray-200">Catatan</div>
+          <div class="text-xs text-gray-600 dark:text-gray-400 mt-1">
+            Jika pada tanggal/sesi target murid sudah memiliki presensi dengan status selain <b>pending</b>, pemindahan akan ditolak.
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-5 flex gap-3">
+        <button type="button" @click="moveModal=false"
+                class="flex-1 py-2.5 rounded-xl border border-gray-300 dark:border-gray-700
+                       text-sm font-medium text-gray-700 dark:text-gray-300
+                       hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+          Batal
+        </button>
+        <button type="button" @click="submitMove()"
+                :disabled="moveSubmitting"
+                class="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-yellow-500 to-amber-600
+                       text-white text-sm font-semibold hover:opacity-90 transition-opacity
+                       disabled:opacity-60 disabled:cursor-not-allowed">
+          <span x-text="moveSubmitting ? 'Memproses...' : 'Pindahkan'"></span>
+        </button>
+      </div>
+    </div>
+  </div>
+
   {{-- ── Confirm End Modal ─────────────────────────── --}}
   <div x-show="confirmEnd"
+
        x-transition:enter="transition ease-out duration-200"
        x-transition:enter-start="opacity-0"
        x-transition:enter-end="opacity-100"
@@ -335,6 +434,30 @@ function attendanceSPA() {
     errorMsg: '',
     startedAt: @json($meeting->started_at ?? ''),
 
+    moveModal: false,
+    moveStudent: null,
+    moveStatusValue: 'izin',
+
+    // default target mengikuti meeting sekarang
+    moveTargetDate: @json($date->toDateString()),
+    moveTargetSessionTime: @json($meeting->session_time),
+
+
+
+    // daftar session untuk dropdown pindah (opsional)
+    // (diisi di init() agar ada minimal 1 pilihan)
+    moveAvailableSessionTimes: [],
+
+
+    moveSubmitting: false,
+
+    // session choices untuk target (akan diisi dari dropdown)
+    sessionTimes: ['__fallback__'],
+
+
+
+
+
     statusLabels: { hadir: 'Hadir', alpha: 'Alpha', sakit: 'Sakit', izin: 'Izin', pending: 'Pending' },
 
     // --- Data ---
@@ -360,9 +483,56 @@ function attendanceSPA() {
       }[this.classState] ?? '';
     },
 
-    init() {},
+    init() {
+      // sessionTimes dipakai hanya untuk dropdown; fallback ke [meeting.session_time]
+      if (!Array.isArray(this.sessionTimes) || this.sessionTimes.length === 0) {
+        this.sessionTimes = [this.moveTargetSessionTime];
+      }
+    },
 
     // --- Actions ---
+    openMoveModal(student, status) {
+      this.moveStudent = student;
+      this.moveStatusValue = status;
+      this.moveModal = true;
+      this.errorMsg = '';
+    },
+
+    async submitMove() {
+      this.moveSubmitting = true;
+      this.errorMsg = '';
+      try {
+        const res = await fetch('{{ route("trainer.attendance.move-status", $meeting) }}', {
+          method: 'POST',
+          headers: {
+            'X-CSRF-TOKEN': csrfToken,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({
+            student_id: this.moveStudent.id,
+            status: this.moveStatusValue,
+            target_date: this.moveTargetDate,
+            target_session_time: this.moveTargetSessionTime
+          })
+        });
+
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+          this.errorMsg = data.message ?? 'Gagal memindahkan presensi.';
+          return;
+        }
+
+        // Set status di meeting asal menjadi izin/sakit
+        this.moveStudent.status = this.moveStatusValue;
+        this.moveModal = false;
+      } catch (e) {
+        this.errorMsg = 'Terjadi kesalahan jaringan.';
+      } finally {
+        this.moveSubmitting = false;
+      }
+    },
+
     async startClass() {
       this.starting = true;
       this.errorMsg = '';
