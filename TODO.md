@@ -1,11 +1,8 @@
-# Add Student Duplicate ID Validation Task
+# TODO
+- [x] Create view `resources/views/admin/recap/index.blade.php` untuk fitur rekap admin bulanan (filter trainer/bulan/tahun/sesi) dan tabel per hari + total hadir.
+- [x] Samakan nama field filter antara view dan controller: trainer_id dan session.
+- [x] Tambahkan tombol Export CSV (route `admin.recap.export`) dengan query filter yang sama.
+- [ ] Cek mapping status attendance (pending/hadir/izin/sakit/alpha) di view agar sesuai nilai status dari database.
+- [ ] Jalankan pemeriksaan cepat dengan browsing route `/admin/recap` dan test filter.
 
-**Status:** In Progress  
-**Completed Steps:** 2/4
 
-## Steps to Complete:
-1. ✅ Create TODO.md  
-2. ✅ Updated Blade with specific duplicate ID toast message  
-3. Add old() values and error styling to form inputs for proper red highlight  
-4. Add error handling JS block  
-5. Update TODO and complete
