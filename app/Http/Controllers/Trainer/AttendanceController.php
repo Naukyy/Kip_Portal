@@ -282,17 +282,37 @@ class AttendanceController extends Controller
                 ->select('attendances.*')
                 ->first();
 
+            $dayName = Carbon::parse($targetDate)->locale('id')->dayName;
 
+            // FIX: blok pemindahan jika siswa memang terdaftar pada dayName target.
+            // Ini menutup kasus "try pertama" ketika existing masih pending (karena record baru dibuat),
+            // tapi secara jadwal siswa sudah benar-benar ada di hari tersebut.
+            $isScheduledOnTarget = Student::where('id', $request->student_id)
+                ->where('trainer_id', $trainer->id)
+                ->where('is_active', true)
+                ->where('schedule', 'like', "%{$dayName}%")
+                ->exists();
 
-            // Jika sudah ada selain pending, tolak total (tanpa create/update apa pun)
-            if ($existing && $existing->status !== 'pending') {
+            if ($isScheduledOnTarget) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Tidak bisa memindahkan: murid sudah memiliki presensi pada tanggal/sesi tersebut.',
+                    'message' => 'Siswa sudah terdaftar di hari tersebut. Kehadiran tidak berpindah.',
                 ], 422);
             }
 
-            $dayName = Carbon::parse($targetDate)->locale('id')->dayName;
+            // Tolak pemindahan jika pada tanggal/sesi target murid sudah punya attendance (selain pending).
+            // Gunakan message yang spesifik agar UI menampilkan notifikasi yang benar.
+            if ($existing && $existing->status !== 'pending') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Siswa sudah terdaftar di hari tersebut. Kehadiran tidak berpindah.',
+                ], 422);
+            }
+
+            // Pastikan student memang punya jadwal di dayName target.
+            // Jika tidak terdaftar, tetap boleh dibuat attendance untuk kebutuhan pindahan.
+            // Namun kasus salah hari umumnya justru: murid sudah terdaftar => existing harusnya != pending
+            // sehingga akan ditolak di bagian pengecekan di atas.
 
             // Ensure class meeting exists for target date + target session time
             $targetMeeting = ClassMeeting::firstOrCreate(
@@ -321,8 +341,7 @@ class AttendanceController extends Controller
                 ]
             );
 
-
-            // Update status di meeting asal
+            // Update status di meeting asal (siswa ditandai izin/sakit)
             Attendance::where('class_meeting_id', $meeting->id)
                 ->where('student_id', $request->student_id)
                 ->update([
